@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Typing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #12151c;
+            --card-bg: #1a1e29;
+            --text-dim: #4b5263;
+            --text-main: #abb2bf;
+            --accent: #7a93a0;
+            --accent-glow: rgba(122, 147, 160, 0.15);
+            --correct: #98c379;
+            --correct-bg: rgba(152, 195, 121, 0.12);
+            --wrong: #e06c75;
+            --wrong-bg: rgba(224, 108, 117, 0.15);
+            --cursor: #61afef;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 820px;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s ease;
+        }
+
+        h1 {
+            text-align: center;
+            font-weight: 300;
+            font-size: 1.4rem;
+            letter-spacing: 2px;
+            color: #d1d5db;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        /* Initial Setup Section */
+        .setup-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        textarea#custom-text {
+            width: 100%;
+            height: 150px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        textarea#custom-text:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .btn {
+            background: var(--accent);
+            color: #12151c;
+            border: none;
+            padding: 12px 28px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            align-self: center;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+            filter: brightness(1.1);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Statistics */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-box {
+            text-align: center;
+        }
+
+        .stat-box .number {
+            font-size: 1.6rem;
+            font-weight: 400;
+            color: #e5c07b;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-box .label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Typing Display Area */
+        .typing-area {
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 24px;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.15rem;
+            line-height: 1.9;
+            height: 190px;
+            overflow-y: auto;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            cursor: text;
+            scroll-behavior: smooth;
+            font-variant-ligatures: none;
+            letter-spacing: 0px;
+        }
+
+        #hidden-input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            left: -9999px;
+        }
+
+        .line {
+            display: block;
+            min-height: 1.9em;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .char {
+            color: var(--text-dim);
+            transition: color 0.08s ease, background-color 0.08s ease;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: inline;
+        }
+
+        .char.correct {
+            color: var(--correct);
+            background-color: var(--correct-bg);
+        }
+
+        .char.incorrect {
+            color: var(--wrong);
+            background-color: var(--wrong-bg);
+            border-radius: 2px;
+        }
+
+        .char.current {
+            color: #ffffff;
+            background-color: rgba(97, 175, 239, 0.25);
+            border-bottom: 2px solid var(--cursor);
+            animation: pulse 1.2s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { border-color: var(--cursor); }
+            50% { border-color: transparent; }
+        }
+
+        .actions {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn-subtle {
+            background: transparent;
+            color: var(--text-dim);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 8px 18px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn-subtle:hover {
+            color: var(--text-main);
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Custom Typing</h1>
+
+        <div id="setup-section" class="setup-section">
+            <textarea id="custom-text" placeholder="Paste or type your text here..."></textarea>
+            <button id="start-btn" class="btn">Start Practice</button>
+        </div>
+
+        <div id="test-section" class="hidden">
+            <div class="stats">
+                <div class="stat-box">
+                    <div id="wpm" class="number">0</div>
+                    <div class="label">WPM</div>
+                </div>
+                <div class="stat-box">
+                    <div id="accuracy" class="number">100%</div>
+                    <div class="label">Accuracy</div>
+                </div>
+                <div class="stat-box">
+                    <div id="time" class="number">0s</div>
+                    <div class="label">Time</div>
+                </div>
+            </div>
+
+            <input type="text" id="hidden-input" autocomplete="off" spellcheck="false" />
+            <div id="text-display" class="typing-area"></div>
+
+            <div class="actions">
+                <button id="restart-btn" class="btn-subtle">Restart</button>
+                <button id="reset-btn" class="btn-subtle">New Text</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const setupSection = document.getElementById('setup-section');
+        const testSection = document.getElementById('test-section');
+        const customTextInput = document.getElementById('custom-text');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const textDisplay = document.getElementById('text-display');
+        const hiddenInput = document.getElementById('hidden-input');
+
+        const wpmDisplay = document.getElementById('wpm');
+        const accuracyDisplay = document.getElementById('accuracy');
+        const timeDisplay = document.getElementById('time');
+
+        let fullText = "";
+        let charElements = [];
+        let timer = null;
+        let startTime = null;
+        let isStarted = false;
+        let isFinished = false;
+        let totalMistakes = 0;
+
+        startBtn.addEventListener('click', () => {
+            const rawText = customTextInput.value;
+            if (!rawText.trim()) {
+                customTextInput.focus();
+                return;
+            }
+
+            setupSection.classList.add('hidden');
+            testSection.classList.remove('hidden');
+            
+            initTest(rawText);
+        });
+
+        function initTest(rawText) {
+            clearInterval(timer);
+            isStarted = false;
+            isFinished = false;
+            totalMistakes = 0;
+            hiddenInput.value = "";
+            
+            wpmDisplay.textContent = "0";
+            accuracyDisplay.textContent = "100%";
+            timeDisplay.textContent = "0s";
+
+            textDisplay.innerHTML = "";
+            charElements = [];
+            fullText = "";
+
+            const lines = rawText.split(/\r?\n/);
+
+            lines.forEach((lineText) => {
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'line';
+
+                for (let i = 0; i < lineText.length; i++) {
+                    const span = document.createElement('span');
+                    span.className = 'char';
+                    span.textContent = lineText[i];
+                    lineDiv.appendChild(span);
+
+                    charElements.push(span);
+                    fullText += lineText[i];
+                }
+
+                textDisplay.appendChild(lineDiv);
+            });
+
+            if (charElements.length > 0) {
+                charElements[0].classList.add('current');
+            }
+
+            textDisplay.scrollTop = 0;
+            focusInput();
+        }
+
+        textDisplay.addEventListener('click', focusInput);
+
+        function focusInput() {
+            if (!isFinished) hiddenInput.focus();
+        }
+
+        hiddenInput.addEventListener('input', () => {
+            if (isFinished) return;
+
+            if (!isStarted) {
+                isStarted = true;
+                startTime = performance.now();
+                timer = setInterval(updateStats, 1000);
+            }
+
+            const inputVal = hiddenInput.value;
+            const inputLen = inputVal.length;
+            const textLen = fullText.length;
+
+            let currentMistakes = 0;
+
+            for (let i = 0; i < textLen; i++) {
+                const charSpan = charElements[i];
+                const typedChar = inputVal[i];
+                const targetChar = fullText[i];
+
+                if (typedChar == null) {
+                    charSpan.className = 'char' + (i === inputLen ? ' current' : '');
+                } else if (typedChar === targetChar) {
+                    charSpan.className = 'char correct' + (i === inputLen ? ' current' : '');
+                } else {
+                    charSpan.className = 'char incorrect' + (i === inputLen ? ' current' : '');
+                    currentMistakes++;
+                }
+            }
+
+            if (currentMistakes > totalMistakes) {
+                totalMistakes = currentMistakes;
+            }
+
+            if (inputLen < textLen) {
+                const currentSpan = charElements[inputLen];
+                currentSpan.classList.add('current');
+                
+                const spanTop = currentSpan.offsetTop;
+                const containerHeight = textDisplay.clientHeight;
+                const scrollTop = textDisplay.scrollTop;
+
+                if (spanTop - scrollTop > containerHeight - 60) {
+                    textDisplay.scrollTop = spanTop - (containerHeight / 2);
+                } else if (spanTop - scrollTop < 30) {
+                    textDisplay.scrollTop = Math.max(0, spanTop - 30);
+                }
+            }
+            
+            updateStats();
+
+            if (inputLen >= textLen) {
+                finishTest();
+            }
+        });
+
+        function updateStats() {
+            if (!startTime) return;
+
+            const elapsedSeconds = Math.floor((performance.now() - startTime) / 1000);
+            timeDisplay.textContent = `${elapsedSeconds}s`;
+
+            const typedLength = hiddenInput.value.length;
+            
+            if (typedLength > 0) {
+                const accuracy = Math.max(0, Math.round(((typedLength - totalMistakes) / typedLength) * 100));
+                accuracyDisplay.textContent = `${accuracy}%`;
+
+                const minutes = elapsedSeconds / 60;
+                if (minutes > 0) {
+                    const wpm = Math.round((typedLength / 5) / minutes);
+                    wpmDisplay.textContent = isFinite(wpm) ? wpm : 0;
+                }
+            }
+        }
+
+        function finishTest() {
+            clearInterval(timer);
+            isFinished = true;
+            updateStats();
+            hiddenInput.blur();
+
+            if (charElements[fullText.length - 1]) {
+                charElements[fullText.length - 1].classList.remove('current');
+            }
+        }
+
+        restartBtn.addEventListener('click', () => {
+            initTest(customTextInput.value);
+        });
+
+        resetBtn.addEventListener('click', () => {
+            clearInterval(timer);
+            testSection.classList.add('hidden');
+            setupSection.classList.remove('hidden');
+            customTextInput.value = "";
+            customTextInput.focus();
+        });
+    </script>
+</body>
+</html>

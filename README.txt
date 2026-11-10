@@ -1,0 +1,1 @@
+Custom Typing é uma aplicação web minimalista criada para resolver um problema simples: treinar digitação no texto que você quiser.
